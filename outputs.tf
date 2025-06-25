@@ -39,9 +39,9 @@ output "apps_domain" {
   value = "${replace(replace(google_dns_record_set.wildcard-apps-dns.name, "/^\\*\\./", ""), "/\\.$/", "")}"
 }
 
-output "tcp_domain" {
-  value = "${replace(google_dns_record_set.tcp-dns.name, "/\\.$/", "")}"
-}
+# output "tcp_domain" {
+#   value = "${replace(google_dns_record_set.tcp-dns.name, "/\\.$/", "")}"
+# }
 
 output "ops_manager_public_ip" {
   value = "${google_compute_address.ops-manager-ip.address}"
@@ -179,17 +179,17 @@ output "ssh_router_pool" {
   value = "${google_compute_target_pool.cf-ssh.name}"
 }
 
-output "tcp_lb_name" {
-  value = "${google_compute_target_pool.cf-tcp.name}"
-}
+# output "tcp_lb_name" {
+#   value = "${google_compute_target_pool.cf-tcp.name}"
+# }
 
-output "tcp_router_pool" {
-  value = "${google_compute_target_pool.cf-tcp.name}"
-}
+# output "tcp_router_pool" {
+#   value = "${google_compute_target_pool.cf-tcp.name}"
+# }
 
-output "buildpacks_bucket" {
-  value = "${element(concat(google_storage_bucket.buildpacks.*.name, list("")), 0)}"
-}
+# output "buildpacks_bucket" {
+#   value = "${element(concat(google_storage_bucket.buildpacks.*.name, list("")), 0)}"
+# }
 
 output "droplets_bucket" {
   value = "${element(concat(google_storage_bucket.droplets.*.name, list("")), 0)}"

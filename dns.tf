@@ -90,12 +90,12 @@ resource "google_dns_record_set" "app-ssh-dns" {
   rrdatas = ["${var.internetless ? local.haproxy_static_ip : google_compute_address.cf-ssh.address}"]
 }
 
-resource "google_dns_record_set" "tcp-dns" {
-  name = "tcp.${google_dns_managed_zone.env_dns_zone.dns_name}"
-  type = "A"
-  ttl  = 300
+# resource "google_dns_record_set" "tcp-dns" {
+#   name = "tcp.${google_dns_managed_zone.env_dns_zone.dns_name}"
+#   type = "A"
+#   ttl  = 300
 
-  managed_zone = "${google_dns_managed_zone.env_dns_zone.name}"
+#   managed_zone = "${google_dns_managed_zone.env_dns_zone.name}"
 
-  rrdatas = ["${var.internetless ? local.haproxy_static_ip : google_compute_address.cf-tcp.address}"]
-}
+#   rrdatas = ["${var.internetless ? local.haproxy_static_ip : google_compute_address.cf-tcp.address}"]
+# }
