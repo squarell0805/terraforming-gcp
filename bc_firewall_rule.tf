@@ -29,11 +29,15 @@ resource "google_compute_firewall" "allow_https_from_internet" {
 
   allow {
     protocol = "tcp"
-    ports    = ["443"]
+    ports    = ["443", "53"]
+  }
+
+  allow {
+    protocol = "udp"
+    ports    = ["53"]
   }
 
   source_ranges = ["0.0.0.0/0"]
-  target_tags   = ["allow-https"]
 }
 
 # HTTPS from Cloudflare
@@ -70,40 +74,6 @@ resource "google_compute_firewall" "deny_https_ingress_cloudflare" {
   target_tags   = ["allow-https-cloudflare"]
 }
 
-# IAP Access
-# resource "google_compute_firewall" "allow_iap_tcp_ingress" {
-#   name        = "${var.env_name}-allow-iap-tcp-ingress"
-#   network     = "${google_compute_network.pcf-network.name}"
-#   description = "Allow TCP ingress from IAP Proxy"
-#   direction   = "INGRESS"
-#   priority    = 1000
-
-#   allow {
-#     protocol = "tcp"
-#     ports    = ["22", "3389"]
-#   }
-
-#   source_ranges = "${var.iap_ranges}"
-#   target_tags   = ["allow-iap"]
-# }
-
-# Legacy VMware to PostgreSQL
-# resource "google_compute_firewall" "allow_legacy_vmw_prj_to_postgres" {
-#   name        = "${var.env_name}-allow-legacy-vmw-dtnz01-tds-gp-partner-cert"
-#   network     = "${google_compute_network.pcf-network.name}"
-#   description = "Allow legacy VMware networks to PostgreSQL"
-#   direction   = "INGRESS"
-#   priority    = 1100
-
-#   allow {
-#     protocol = "tcp"
-#     ports    = ["5432"]
-#   }
-
-#   source_ranges = "${var.legacy_vmware_networks}"
-#   target_tags   = ["tds-gp-partner-cert"]
-# }
-
 # SSH/RDP Access from trusted networks
 resource "google_compute_firewall" "ssh_rdp_access" {
   name        = "${var.env_name}-ssh-rdp-access"
@@ -120,23 +90,6 @@ resource "google_compute_firewall" "ssh_rdp_access" {
   source_ranges = "${var.broadcom_networks}"
   target_tags   = ["demo-ssh", "demo-rdp"]
 }
-
-# Test rule (highest priority)
-# resource "google_compute_firewall" "test" {
-#   name        = "${var.env_name}-test"
-#   network     = "${google_compute_network.pcf-network.name}"
-#   description = "Test SSH access rule"
-#   direction   = "INGRESS"
-#   priority    = 10
-
-#   allow {
-#     protocol = "tcp"
-#     ports    = ["22"]
-#   }
-
-#   source_ranges = ["192.19.0.0/16", "192.19.161.250/32"]
-#   target_tags   = ["demo-ssh"]
-# }
 
 # TAS OpsManager access
 resource "google_compute_firewall" "tas_opsmanager_2222" {
@@ -176,6 +129,110 @@ resource "google_compute_firewall" "allow_internal_ingress" {
   }
 
   source_ranges = "${var.internal_networks}"
+}
+
+# ====================================
+# EGRESS RULES
+# ====================================
+# Default Deny Egress (lowest priority)
+resource "google_compute_firewall" "deny_egress" {
+  name        = "${var.env_name}-deny-egress"
+  network     = "${google_compute_network.pcf-network.name}"
+  description = "Disable default egress with lowest priority to allow only egress defined in other rules"
+  direction   = "EGRESS"
+  priority    = 65534
+
+  deny {
+    protocol = "all"
+  }
+
+  destination_ranges = ["0.0.0.0/0"]
+}
+
+# Allow Internal Egress
+resource "google_compute_firewall" "allow_internal_egress" {
+  name        = "${var.env_name}-allow-internal-egress"
+  network     = "${google_compute_network.pcf-network.name}"
+  description = "Allow egress between internal systems"
+  direction   = "EGRESS"
+  priority    = 65532
+
+  allow {
+    protocol = "all"
+  }
+
+  destination_ranges = "${var.internal_networks}"
+}
+
+# Allow Common Egress Ports
+resource "google_compute_firewall" "allow_common_egress" {
+  name        = "${var.env_name}-allow-common-egress"
+  network     = "${google_compute_network.pcf-network.name}"
+  description = "Allow limited egress connections externally (trusted ports)"
+  direction   = "EGRESS"
+  priority    = 65533
+
+  allow {
+    protocol = "tcp"
+    ports    = ["25", "80", "443", "587", "1344", "43"]
+  }
+
+  destination_ranges = ["0.0.0.0/0"]
+}
+
+# Private Google Access (IPv4)
+resource "google_compute_firewall" "allow_private_google_access_egress" {
+  name        = "${var.env_name}-allow-private-google-access-egress-0"
+  network     = "${google_compute_network.pcf-network.name}"
+  description = "Allow egress to Private Google Access"
+  direction   = "EGRESS"
+  priority    = 2000
+
+  allow {
+    protocol = "tcp"
+    ports    = ["443"]
+  }
+
+  destination_ranges = "${var.private_google_access_ipv4}"
+}
+
+# Private Google Access (IPv6)
+resource "google_compute_firewall" "allow_private_google_access_ipv6_egress" {
+  name        = "${var.env_name}-allow-private-google-access-ipv6-egress-0"
+  network     = "${google_compute_network.pcf-network.name}"
+  description = "Allow egress to Private Google Access with IPv6"
+  direction   = "EGRESS"
+  priority    = 2000
+
+  allow {
+    protocol = "tcp"
+    ports    = ["443"]
+  }
+
+  destination_ranges = "${var.private_google_access_ipv6}"
+}
+
+# OpsManager Ports
+resource "google_compute_firewall" "opsman_ports" {
+  name        = "${var.env_name}-opsman-ports"
+  network     = "${google_compute_network.pcf-network.name}"
+  description = "OpsManager egress ports"
+  direction   = "EGRESS"
+  priority    = 1000
+
+  allow {
+    protocol = "tcp"
+    ports    = ["443", "80", "22", "53", "5985", "5986", "6868"]
+  }
+  allow {
+    protocol = "udp"
+    ports    = ["53"]
+  }
+  allow {
+    protocol = "icmp"
+  }
+
+  destination_ranges = ["0.0.0.0/0"]
 }
 
 # ====================================
@@ -522,104 +579,36 @@ resource "google_compute_firewall" "allow_internal_ingress" {
 #   target_tags   = ["gke-shepherd-demo-gke-8bc83d61-node"]
 # }
 
-# ====================================
-# EGRESS RULES
-# ====================================
+# IAP Access
+# resource "google_compute_firewall" "allow_iap_tcp_ingress" {
+#   name        = "${var.env_name}-allow-iap-tcp-ingress"
+#   network     = "${google_compute_network.pcf-network.name}"
+#   description = "Allow TCP ingress from IAP Proxy"
+#   direction   = "INGRESS"
+#   priority    = 1000
 
-# Default Deny Egress (lowest priority)
-resource "google_compute_firewall" "deny_egress" {
-  name        = "${var.env_name}-deny-egress"
-  network     = "${google_compute_network.pcf-network.name}"
-  description = "Disable default egress with lowest priority to allow only egress defined in other rules"
-  direction   = "EGRESS"
-  priority    = 65534
+#   allow {
+#     protocol = "tcp"
+#     ports    = ["22", "3389"]
+#   }
 
-  deny {
-    protocol = "all"
-  }
+#   source_ranges = "${var.iap_ranges}"
+#   target_tags   = ["allow-iap"]
+# }
 
-  destination_ranges = ["0.0.0.0/0"]
-}
+# Legacy VMware to PostgreSQL
+# resource "google_compute_firewall" "allow_legacy_vmw_prj_to_postgres" {
+#   name        = "${var.env_name}-allow-legacy-vmw-dtnz01-tds-gp-partner-cert"
+#   network     = "${google_compute_network.pcf-network.name}"
+#   description = "Allow legacy VMware networks to PostgreSQL"
+#   direction   = "INGRESS"
+#   priority    = 1100
 
-# Allow Internal Egress
-resource "google_compute_firewall" "allow_internal_egress" {
-  name        = "${var.env_name}-allow-internal-egress"
-  network     = "${google_compute_network.pcf-network.name}"
-  description = "Allow egress between internal systems"
-  direction   = "EGRESS"
-  priority    = 65532
+#   allow {
+#     protocol = "tcp"
+#     ports    = ["5432"]
+#   }
 
-  allow {
-    protocol = "all"
-  }
-
-  destination_ranges = "${var.internal_networks}"
-}
-
-# Allow Common Egress Ports
-resource "google_compute_firewall" "allow_common_egress" {
-  name        = "${var.env_name}-allow-common-egress"
-  network     = "${google_compute_network.pcf-network.name}"
-  description = "Allow limited egress connections externally (trusted ports)"
-  direction   = "EGRESS"
-  priority    = 65533
-
-  allow {
-    protocol = "tcp"
-    ports    = ["25", "80", "443", "587", "1344", "43"]
-  }
-
-  destination_ranges = ["0.0.0.0/0"]
-}
-
-# Private Google Access (IPv4)
-resource "google_compute_firewall" "allow_private_google_access_egress" {
-  name        = "${var.env_name}-allow-private-google-access-egress-0"
-  network     = "${google_compute_network.pcf-network.name}"
-  description = "Allow egress to Private Google Access"
-  direction   = "EGRESS"
-  priority    = 2000
-
-  allow {
-    protocol = "tcp"
-    ports    = ["443"]
-  }
-
-  destination_ranges = "${var.private_google_access_ipv4}"
-}
-
-# Private Google Access (IPv6)
-resource "google_compute_firewall" "allow_private_google_access_ipv6_egress" {
-  name        = "${var.env_name}-allow-private-google-access-ipv6-egress-0"
-  network     = "${google_compute_network.pcf-network.name}"
-  description = "Allow egress to Private Google Access with IPv6"
-  direction   = "EGRESS"
-  priority    = 2000
-
-  allow {
-    protocol = "tcp"
-    ports    = ["443"]
-  }
-
-  destination_ranges = "${var.private_google_access_ipv6}"
-}
-
-# OpsManager Ports
-resource "google_compute_firewall" "opsman_ports" {
-  name        = "${var.env_name}-opsman-ports"
-  network     = "${google_compute_network.pcf-network.name}"
-  description = "OpsManager egress ports"
-  direction   = "EGRESS"
-  priority    = 1000
-
-  allow {
-    protocol = "tcp"
-    ports    = ["443", "80", "22", "53", "5985", "5986", "6868"]
-  }
-
-  allow {
-    protocol = "icmp"
-  }
-
-  destination_ranges = ["0.0.0.0/0"]
-}
+#   source_ranges = "${var.legacy_vmware_networks}"
+#   target_tags   = ["tds-gp-partner-cert"]
+# }

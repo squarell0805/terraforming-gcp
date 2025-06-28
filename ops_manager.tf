@@ -10,7 +10,7 @@ resource "google_compute_firewall" "ops-manager-external" {
 
   allow {
     protocol = "tcp"
-    ports    = ["22", "80", "443"]
+    ports    = ["8022", "80", "443"]
   }
 }
 
