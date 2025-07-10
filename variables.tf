@@ -283,3 +283,27 @@ variable "iap_ranges" {
      "35.235.240.0/20"
   ]
 }
+
+/**********
+ * Nat VM *
+ **********/
+
+variable "nat_vm_machine_type" {
+  type = "string"
+  default = "e2-small"
+}
+
+variable "nat_vm_instance_image" {
+  description = "The boot image for the VM instance."
+  type        = "string"
+  default     = "ubuntu-os-cloud/ubuntu-2204-lts"
+}
+
+variable "shared_vpc_subnet" {
+  type = "string"
+}
+
+variable "nat_vm_tags" {
+  type = "list"
+  default = ["compute", "blobstore", "control", "database", "router", "controller", "errands"]
+}

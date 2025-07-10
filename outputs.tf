@@ -290,3 +290,13 @@ output "pks_worker_node_service_account_key" {
   value     = "${module.pks.pks_worker_node_service_account_key}"
   sensitive = true
 }
+
+output "nat_vm_ssh_private_key" {
+  sensitive = true
+  value     = "${tls_private_key.nat-vm.private_key_pem}"
+}
+
+output "nat_vm_ssh_public_key" {
+  sensitive = true
+  value     = "${format("ubuntu:%s", tls_private_key.nat-vm.public_key_openssh)}"
+}
